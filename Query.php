@@ -8,11 +8,14 @@
  * @package    GLM Sessions
  */
 namespace GLM\Sessions;
+
 use GLM\Sessions\Utility as U;
+
 abstract class Query{
     protected $table;
     protected $fields;
     protected $timestamps = false;
+    protected $where      = array();
 
     protected function get_model() {
         return isset( $_REQUEST['model'] ) ? filter_var( $_REQUEST['model'], FILTER_SANITIZE_STRING ) : '';
@@ -36,7 +39,8 @@ abstract class Query{
 
     protected function sanitize_fields( $fields ) {
         $data_pairs      = array();
-        $sanitized_value = false;
+        $sanitized_value = null;
+        $data_type_array = null;
 
         foreach ( $fields as $field_key => $field_data ) {
             if ( array_key_exists( 'value', $field_data ) && $field_data['value'] ) {
@@ -61,91 +65,49 @@ abstract class Query{
 
     }
 
-    protected function create_query( $operation ) {
-        $payload    = $this->get_payload();
-        $data_array = array();
-        $sanitized  = $this->sanitize_fields( $payload );
+    private function build_where_clause(){
+        $where_clause = 'WHERE TRUE';
 
-        $data_pairs      = $sanitized['data'];
-        $data_type_array = $sanitized['format'];
-        array_push( $data_array, $data_pairs );
-
-        if ( $operation === 'update' ) {
-
-            $id = filter_var( $_REQUEST['id'], FILTER_SANITIZE_NUMBER_INT );
-            return array(
-                'data'   => $data_array,
-                'format' => $data_type_array,
-                'where'  => array( 'id' => $id ),
-            );
-        } elseif ( $operation === 'create' ) {
-            return (
-                array(
-                    'data'   => $data_array,
-                    'format' => $data_type_array,
-                )
-            );
-        }
-    }
-
-    protected function get_where_clause() {
-        $where         = 'WHERE TRUE';
-        $where_request = isset( $_REQUEST['where'] ) ? $_REQUEST['where'] : false;
-
-        if ( $where_request ) {
-            foreach ( $where_request as $column => $value ) {
-                $where .= " AND $column = $value";
+        if ( $this->where ) {
+            $where_clause .= ' AND ';
+            foreach ( $this->where as $condition => $value ) {
+                $clause        = "$condition = '$value' ";
+                $where_clause .= $clause;
             }
         }
-        $where .= ';';
-        return $where;
-    }
 
-    protected function get_table_columns() {
-        $columns = isset( $_REQUEST['columns'] ) ? filter_var( implode( ',', $_REQUEST['columns'] ), FILTER_SANITIZE_STRING ) : false;
-        return $columns;
-    }
-
-    /**  Exposed Model Methods **/
-    public function create( $operation ) {
-        global $wpdb;
-        $query = $this->create_query( $operation );
-        $wpdb->insert( $this->table, $query['data'][0], $query['format'] ); // db call ok.
-
-        if( $_REQUEST['entity'] === 'true' ) {
-            $wpdb->insert(
-                GLM_SESSIONS_TABLE,
-                array(
-                    'map'         => $_REQUEST['map'],
-                    'entity_id'   => $wpdb->insert_id,
-                    'entity_name' => $this->get_model(),
-                ),
-                array(
-                    '%d',
-                    '%d',
-                    '%s',
-                )
-            ); // db call ok.
-        }
-        return $wpdb->insert_id;
+        return $where_clause;
     }
 
     public function get() {
         global $wpdb;
-        $table_columns = $this->get_table_columns() ? $this->get_table_columns() : '*';
-        $where         = $this->get_where_clause();
-        $results       = $wpdb->get_results(
-            "SELECT $table_columns FROM $this->table $where",
-            'ARRAY_A'
-        ); // db call ok.
-        return $results;
+        $where_clause = $this->build_where_clause();
+        return $wpdb->get_results( "SELECT * FROM $this->table $where_clause" );
     }
 
-    public function update( $operation ) {
+    public function update( $values = array() ) {
         global $wpdb;
 
-        $query = $this->create_query( $operation );
-        $wpdb->update( $this->table, $query['data'][0], $query['where'], $query['format'] ); // db call ok.
+        $query = $this->sanitize_fields( $this->fields );
+
+        if ( $this->timestamps ) {
+            $query['data']['updated_at'] = current_time( 'mysql' );
+        }
+ 
+        if ( $values ) {
+            $wpdb->update(
+                $this->table,
+                $values,
+                $this->where
+            );
+        } else {
+            $wpdb->update(
+                $this->table,
+                $query['data'],
+                $this->where,
+                $query['format'],
+            );
+        }
     }
 
     public function delete() {
@@ -154,7 +116,7 @@ abstract class Query{
         $wpdb->delete( $this->table, array( 'id' => $id ) ); // db call ok.
     }
 
-    public function save() {
+    public function save(){
         global $wpdb;
 
         $query = $this->sanitize_fields( $this->fields );
@@ -173,7 +135,15 @@ abstract class Query{
         return $wpdb->insert_id;
     }
 
-    public function update_or_create(){
-        // use wpdb replace
+    public function exists(){
+        global $wpdb;
+        $where_clause = $this->build_where_clause();
+        $exists       = $wpdb->get_results( "SELECT COUNT(id) FROM $this->table $where_clause LIMIT 1", ARRAY_A )[0]['COUNT(id)'];
+        return $exists == '0' ? false : true;
+    }
+
+    public function where( $where_array ) {
+        $this->where = $where_array;
+        return $this;
     }
 }

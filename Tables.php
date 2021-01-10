@@ -22,19 +22,21 @@ class Tables extends TableBuilder{
     public function __construct(){
 
         $this->tables = array(
-            'settings' =>
+            'sessions_settings' =>
                 'id INT NOT NULL AUTO_INCREMENT,
                 opentok_key TINYTEXT NULL,
                 opentok_secret TINYTEXT NULL,
                 PRIMARY KEY  (id)',
-            'sessions' =>
+            'sessions'          =>
                 'id INT NOT NULL AUTO_INCREMENT,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
                 session_key TINYTEXT NOT NULL,
                 title TINYTEXT NOT NULL,
+                slug TINYTEXT NOT NULL,
                 PRIMARY KEY  (id)',
         );
+ 
         $this->glm_sessions_db_update_check();
     }
 }
