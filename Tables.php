@@ -1,8 +1,7 @@
 <?php //phpcs:ignore WordPress.Files.Filename.InvalidClassFileName
-namespace GLM\Sessions;
+namespace Lauant\ORM;
 
-use const GLM\Sessions\Defines\DB_VERSION;
-use GLM\Sessions\TableBuilder;
+use Lauant\ORM\TableBuilder;
 
 /**
  * Class: Tables
@@ -22,22 +21,22 @@ class Tables extends TableBuilder{
     public function __construct(){
 
         $this->tables = array(
-            'sessions_settings' =>
+            'settings' =>
                 'id INT NOT NULL AUTO_INCREMENT,
-                opentok_key TINYTEXT NULL,
-                opentok_secret TINYTEXT NULL,
+                api_key TINYTEXT NULL,
+                api_secret TINYTEXT NULL,
                 PRIMARY KEY  (id)',
-            'sessions'          =>
+            'sessions' =>
                 'id INT NOT NULL AUTO_INCREMENT,
                 created_at TIMESTAMP NOT NULL,
                 updated_at TIMESTAMP NOT NULL,
-                session_key TINYTEXT NOT NULL,
                 title TINYTEXT NOT NULL,
+                user INT NOT NULL,
                 slug TINYTEXT NOT NULL,
                 PRIMARY KEY  (id)',
         );
- 
-        $this->glm_sessions_db_update_check();
+
+        $this->db_update_check();
     }
 }
 

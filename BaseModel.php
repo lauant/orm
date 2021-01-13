@@ -1,17 +1,15 @@
 <?php
 /**
- * GLM Sessions Query 
+ * Lauant ORM Query 
  *
  * Main data processing model
  *
  * @category   Components
  * @package    GLM Sessions
  */
-namespace GLM\Sessions;
+namespace Lauant\ORM;
 
-use GLM\Sessions\Utility as U;
-
-abstract class Query{
+abstract class BaseModel {
     protected $table;
     protected $fields;
     protected $timestamps = false;
@@ -79,6 +77,7 @@ abstract class Query{
         return $where_clause;
     }
 
+    // this needs to be refactored into using a prepared statement
     public function get() {
         global $wpdb;
         $where_clause = $this->build_where_clause();
@@ -110,12 +109,6 @@ abstract class Query{
         }
     }
 
-    public function delete() {
-        global $wpdb;
-        $id = filter_var( $_REQUEST['payload']['id'], FILTER_SANITIZE_NUMBER_INT );
-        $wpdb->delete( $this->table, array( 'id' => $id ) ); // db call ok.
-    }
-
     public function save(){
         global $wpdb;
 
@@ -135,6 +128,7 @@ abstract class Query{
         return $wpdb->insert_id;
     }
 
+    // this needs to be refactored into a prepared statement
     public function exists(){
         global $wpdb;
         $where_clause = $this->build_where_clause();

@@ -1,18 +1,12 @@
 <?php //phpcs:ignore WordPress.Files.Filename.InvalidClassFileName
-namespace GLM\Sessions;
+namespace Lauant\ORM;
 
-use const GLM\Sessions\Defines\DB_PREFIX;
-use const GLM\Sessions\Defines\DB_VERSION;
-use const GLM\Sessions\Defines\SETTINGS_TABLE;
-use GLM\Sessions\Models\Setting;
+// DB_VERSION and DB_PREFIX can be sourced from anywhere in your plugin
+use Lauant\ORM\Models\Setting;
 
-class TableBuilder{
+abstract class TableBuilder{
 
     protected $tables = array();
-
-    public function __construct(){
-
-    }
 
     protected function setup_defaults( $table, $values, $format ) {
         global $wpdb;
@@ -32,13 +26,13 @@ class TableBuilder{
         foreach ( $this->tables as $key => $table ) {
             $sql = 'CREATE TABLE ' . DB_PREFIX . "$key (
                 $table
-            )" . $this->glm_sessions_set_charset();
+            )" . $this->set_charset();
 
             dbDelta( $sql );
         }
     }
 
-    private function glm_sessions_set_charset(){
+    private function set_charset(){
         global $wpdb;
         $charset_collate = '';
 
@@ -53,18 +47,13 @@ class TableBuilder{
         return $charset_collate;
     }
 
-    public function glm_sessions_db_update_check() {
-        if ( ! get_option( 'glm_sessions_db_version' ) ) {
-            add_option( 'glm_sessions_db_version', DB_VERSION );
-            $this->glm_sessions_install_tables();
-            $this->setup_defaults( SETTINGS_TABLE, array( 'opentok_key' => 'api_key', 'opentok_secret' => 'api_secret' ), array( '%s', '%s' ) );
-        } elseif ( get_site_option( 'glm_sessions_db_version' ) != DB_VERSION ) {
-            $this->glm_sessions_install_tables();
-            update_option( 'glm_sessions_db_version', DB_VERSION );
+    public function db_update_check() {
+        if ( ! get_option( 'lauant_orm_db_version' ) ) {
+            add_option( 'lauant_orm_db_version', 'DB_VERSION VALUE');
+            $this->install_tables();
+        } elseif ( get_site_option( 'lauant_orm_db_version' ) != 'DB_VERSION VALUE' ) {
+            $this->install_tables();
+            update_option( 'lauant_orm_db_version', 'DB_VERSION VALUE' );
         }
-    }
-
-    public function glm_sessions_delete_table() {
-        // remove tables / database
     }
 }
